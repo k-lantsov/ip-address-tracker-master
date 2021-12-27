@@ -1,6 +1,7 @@
+import 'babel-polyfill';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import {validateIp, addTileLayer} from './helpers';
+import {validateIp, getAddress, addTileLayer, addOffset} from './helpers';
 import icon from '../images/icon-location.svg';
 
 const ipInput = document.querySelector('.search-bar__input');
@@ -19,20 +20,18 @@ const map = L.map(mapArea, {
     center: [51.505, -0.09],
     zoom: 13,
 });
-
 const markerIcon = L.icon({
     iconUrl: icon,
     iconSize: [30, 40],
 });
 addTileLayer(map);
-const marker = L.marker([51.505, -0.09], {icon: markerIcon}).addTo(map);
+L.marker([51.505, - 0.09], {icon: markerIcon}).addTo(map);
+
 
 function getData() {
     if (validateIp(ipInput.value)) {
-        fetch(`
-        https://geo.ipify.org/api/v2/country?apiKey=at_1wZdWKc20zasWKFvlV7yxXK0VhtL8&ipAddress=${ipInput.value}`)
-        .then(response => response.json())
-        .then(setInfo);
+        getAddress(ipInput.value)
+            .then(setInfo);
     }
 }
 
@@ -43,9 +42,21 @@ function handleKey(e) {
 }
 
 function setInfo(mapData) {
-    console.log(mapData);
+    const {lat, lng, country, region, timezone} = mapData.location;
     ipInfo.innerText = mapData.ip;
-    locationInfo.innerText = mapData.location.country + ' ' + mapData.location.region;
-    timezoneInfo.innerText = mapData.location.timezone;
+    locationInfo.innerText = country + ' ' + region;
+    timezoneInfo.innerText = timezone;
     ispInfo.innerText = mapData.isp;
+
+    map.setView([lat, lng], 13);
+    L.marker([lat, lng], {icon: markerIcon}).addTo(map);
+
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+        addOffset(map);
+    }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    getAddress('102.22.22.1')
+        .then(setInfo);
+});
